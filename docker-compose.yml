@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: quicken
+      POSTGRES_PASSWORD: quicken
+      POSTGRES_DB: quicken_demo
+    ports:
+      - "5432:5432"
+    volumes:
+      - quicken_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quicken -d quicken_demo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  quicken_pg:
