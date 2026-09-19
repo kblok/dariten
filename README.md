@@ -1,10 +1,10 @@
-# Quicken Web Demo
+# Dariten
 
-A polished, **demo-only** personal finance web app in the spirit of a simplified Quicken: accounts, a transaction register, categories, a dashboard, and a monthly budget vs actual view.
+A polished, **demo-only** personal finance web app in the spirit of a simplified Quicken: accounts, a transaction register, categories, a dashboard, and a monthly budget vs actual view. The in-app product name is **Quicken Demo**.
 
 This is **not** production software. There is **no login**. Every visitor of a given deploy shares one household dataset. Do not enter real bank credentials or real personal transactions.
 
-Placeholder production URL (update after the first Vercel deploy): [https://quicken-web-demo.vercel.app](https://quicken-web-demo.vercel.app)
+Placeholder production URL (update after the first Vercel deploy if the hostname differs): [https://dariten.vercel.app](https://dariten.vercel.app)
 
 ## What is in the demo
 
@@ -52,8 +52,8 @@ You need Node.js 22+ and a Postgres database.
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/kblok/quicken-web-demo.git
-cd quicken-web-demo
+git clone https://github.com/kblok/dariten.git
+cd dariten
 cp .env.example .env
 npm install
 ```
@@ -125,7 +125,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### Create the Neon database
 
-1. Sign in at [https://console.neon.tech](https://console.neon.tech) and create a project (for example `quicken-web-demo`).
+1. Sign in at [https://console.neon.tech](https://console.neon.tech) and create a project (for example `dariten`).
 2. Open **Dashboard → Connection details**.
 3. Copy the **pooled** connection string for the Next.js app. It looks like:
 
@@ -145,11 +145,11 @@ DATABASE_URL="postgresql://USER:PASSWORD@ep-xxx.REGION.aws.neon.tech/neondb?sslm
 ### Connect this GitHub repo to Vercel
 
 1. Sign in at [https://vercel.com](https://vercel.com) and click **Add New… → Project**.
-2. Import **`kblok/quicken-web-demo`** from GitHub. If the repo is not listed, install the Vercel GitHub app and grant access to it.
+2. Import **`kblok/dariten`** from GitHub. If the repo is not listed, install the Vercel GitHub app and grant access to it.
 3. Framework preset should be **Next.js**. Build command can stay `npm run build` (or Vercel’s default). Output directory is not needed.
 4. Under **Environment Variables**, add:
    - `DATABASE_URL` = Neon pooled connection string (Production, Preview, and Development if you use `vercel dev`)
-5. Deploy. The production hostname will replace the placeholder `https://quicken-web-demo.vercel.app`.
+5. Deploy. The production hostname should be [https://dariten.vercel.app](https://dariten.vercel.app) if the Vercel project is named `dariten`; otherwise use the hostname Vercel assigns.
 6. After the first successful deploy, update the Mabl environment URL in the Mabl dashboard (and this README) to the real Vercel URL.
 
 Vercel rebuilds on every push to the connected Git branch. Preview deployments get their own URLs; they will share the same Neon database unless you create a separate Neon branch and a different `DATABASE_URL` for Preview.
@@ -196,7 +196,7 @@ Mabl project already created for this demo:
 | Workspace | Dario Kondratiuk (`Tyl0bVDkrVJ7yJn9DF6Elg-w`) |
 | Application | Quicken Demo (`PWctd71sv3gI1VluEdvuoQ-a`) |
 | Environment | Vercel (`NmGUfHqpSgZFF0DInEGpDg-e`) |
-| Environment URL (placeholder) | `https://quicken-web-demo.vercel.app` |
+| Environment URL (placeholder) | `https://dariten.vercel.app` |
 
 Suggested wiring:
 
