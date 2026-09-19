@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #f3efe6;
+  --panel: #fffdf8;
+  --ink: #163026;
+  --muted: #5d6b63;
+  --line: #e4dccb;
+  --forest: #1b4332;
+  --forest-deep: #10281e;
+  --moss: #3d7a5a;
+  --gold: #c4a15a;
+  --coral: #c45c4a;
+  --sky: #3e6d8a;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-panel: var(--panel);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-forest: var(--forest);
+  --color-forest-deep: var(--forest-deep);
+  --color-moss: var(--moss);
+  --color-gold: var(--gold);
+  --color-coral: var(--coral);
+  --color-sky: var(--sky);
+  --font-sans: var(--font-geist-sans);
+  --font-serif: var(--font-newsreader);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  border-color: var(--line);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.field label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 0.7rem;
+  padding: 0.65rem 0.8rem;
+  color: var(--ink);
+  outline: none;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--moss);
+  box-shadow: 0 0 0 3px rgba(61, 122, 90, 0.16);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: 0.15s ease;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--forest);
+  color: #f7f2e8;
+}
+
+.btn-primary:hover {
+  background: var(--forest-deep);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.btn-ghost:hover {
+  background: #f6f1e6;
+}
+
+.btn-danger {
+  background: #f8ebe8;
+  color: var(--coral);
+}
+
+.btn-danger:hover {
+  background: #f3d8d3;
+}
