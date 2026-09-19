@@ -5,6 +5,13 @@ on:
     branches: [main]
   pull_request:
 
+# Dariten Mabl IDs (not secrets). Override by changing these defaults.
+# Only MABL_API_KEY is a repository secret — do not commit an API key.
+env:
+  MABL_WORKSPACE_ID: Tyl0bVDkrVJ7yJn9DF6Elg-w
+  MABL_APPLICATION_ID: IzDXT4hknwruhKOu7DOyaA-a
+  MABL_ENVIRONMENT_ID: NmGUfHqpSgZFF0DInEGpDg-e
+
 jobs:
   verify:
     name: Lint, typecheck, and unit tests
@@ -37,25 +44,26 @@ jobs:
       - name: Unit tests
         run: npm test
 
-  # Optional follow-up after a successful deploy. Leave commented until Mabl secrets
-  # are stored in GitHub Actions. Do not invent or commit API keys.
-  #
-  # mabl-cloud-run:
-  #   name: Mabl cloud run (placeholder)
-  #   needs: verify
-  #   if: github.ref == 'refs/heads/main'
-  #   runs-on: ubuntu-latest
-  #   env:
-  #     MABL_API_KEY: ${{ secrets.MABL_API_KEY }}
-  #     MABL_WORKSPACE_ID: ${{ secrets.MABL_WORKSPACE_ID }}
-  #     MABL_APPLICATION_ID: ${{ secrets.MABL_APPLICATION_ID }}
-  #     MABL_ENVIRONMENT_ID: ${{ secrets.MABL_ENVIRONMENT_ID }}
-  #   steps:
-  #     - name: Trigger Mabl plan after deploy
-  #       run: |
-  #         echo "Wire this job to the official mabl GitHub Action or REST deployment API."
-  #         echo "See README.md → Connecting Mabl after a Vercel deploy."
-  #         test -n "$MABL_API_KEY"
-  #         test -n "$MABL_WORKSPACE_ID"
-  #         test -n "$MABL_APPLICATION_ID"
-  #         test -n "$MABL_ENVIRONMENT_ID"
+  # Official mabl GitHub Action: creates a deployment event and runs plans
+  # bound to the Dariten application + Vercel environment.
+  # https://github.com/mablhq/github-run-tests-action
+  # REST equivalent: POST https://api.mabl.com/events/deployment
+  # Skipped until repository secret MABL_API_KEY is set (CI/CD Integration key).
+  mabl-cloud-run:
+    name: Mabl cloud run
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.MABL_API_KEY != ''
+    runs-on: ubuntu-latest
+    env:
+      MABL_API_KEY: ${{ secrets.MABL_API_KEY }}
+    steps:
+      - name: Trigger mabl deployment event
+        id: mabl-test-deployment
+        uses: mablhq/github-run-tests-action@v1
+        env:
+          MABL_API_KEY: ${{ secrets.MABL_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          application-id: ${{ env.MABL_APPLICATION_ID }}
+          environment-id: ${{ env.MABL_ENVIRONMENT_ID }}
+          app-url: https://dariten.vercel.app
