@@ -73,6 +73,7 @@ jobs:
           application-id: ${{ env.MABL_APPLICATION_ID }}
           environment-id: ${{ env.MABL_ENVIRONMENT_ID }}
           app-url: https://dariten.vercel.app
+          http-headers: x-vercel-protection-bypass:${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
 
   # PRs: wait for the Vercel Preview GitHub Deployment, then run the same
   # Dariten + Vercel mabl plans with app-url overridden to that preview.
@@ -114,3 +115,4 @@ jobs:
           application-id: ${{ env.MABL_APPLICATION_ID }}
           environment-id: ${{ env.MABL_ENVIRONMENT_ID }}
           app-url: ${{ steps.vercel.outputs.deployment-url }}
+          http-headers: x-vercel-protection-bypass:${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}

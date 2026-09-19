@@ -39,11 +39,12 @@ Copy `.env.example` to `.env` and fill in values.
 | --- | --- | --- |
 | `DATABASE_URL` | Yes | Postgres connection string used by Prisma and the app |
 | `MABL_API_KEY` | CI only | Mabl **CI/CD Integration** API key — store as a GitHub Actions secret, never commit it |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | CI only | Vercel **Protection Bypass for Automation** — store as a GitHub Actions secret; must match the value in the Vercel project |
 | `MABL_WORKSPACE_ID` | Optional | Defaults in CI to the Dario Kondratiuk workspace (see below) |
 | `MABL_APPLICATION_ID` | Optional | Defaults in CI to the Dariten mabl application |
 | `MABL_ENVIRONMENT_ID` | Optional | Defaults in CI to the Vercel mabl environment |
 
-Only `MABL_API_KEY` is a secret. The three IDs are public identifiers and are hardcoded as workflow defaults.
+`MABL_API_KEY` and `VERCEL_AUTOMATION_BYPASS_SECRET` are secrets. The three Mabl IDs are public identifiers and are hardcoded as workflow defaults.
 
 ## Local setup
 
@@ -184,6 +185,8 @@ After those tests, mabl jobs start on the matching event (same Dariten applicati
 | Pull request | **Mabl preview** | That PR’s Vercel Preview URL (`app-url` override) |
 
 Both jobs call the [official mabl GitHub Action](https://github.com/mablhq/github-run-tests-action) (`mablhq/github-run-tests-action@v1`), which creates a [deployment event](https://api.help.mabl.com/reference/ondeploy) (`POST https://api.mabl.com/events/deployment`) and waits for the triggered plans. Job-level `if:` only filters the GitHub event (`push` to `main` vs `pull_request`). Do **not** put `secrets.MABL_API_KEY` in a job `if:` — that makes GitHub schedule **zero jobs** and fail instantly. After mapping the secret to `env.MABL_API_KEY`, later steps check `env.MABL_API_KEY != ''`. If the secret is unset, those steps are skipped and the job exits 0.
+
+Vercel Deployment Protection would otherwise block unattended mabl browsers. Both mabl steps send `http-headers: x-vercel-protection-bypass:${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}`. That GitHub secret must match the project’s **Protection Bypass for Automation** value in Vercel (Project → Settings → Deployment Protection). Do not commit the secret.
 
 The preview job waits for Vercel with the official [`vercel/wait-for-deployment-action`](https://github.com/vercel/wait-for-deployment-action) (pinned commit). It polls GitHub’s Deployments API — no Vercel token. The job needs:
 
