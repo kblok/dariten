@@ -50,7 +50,7 @@ jobs:
   # REST equivalent: POST https://api.mabl.com/events/deployment
   # Skipped until repository secret MABL_API_KEY is set (CI/CD Integration key).
   mabl-cloud-run:
-    name: Mabl cloud run
+    name: Mabl production
     needs: verify
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.MABL_API_KEY != ''
     runs-on: ubuntu-latest
@@ -67,3 +67,38 @@ jobs:
           application-id: ${{ env.MABL_APPLICATION_ID }}
           environment-id: ${{ env.MABL_ENVIRONMENT_ID }}
           app-url: https://dariten.vercel.app
+
+  # PRs: wait for the Vercel Preview GitHub Deployment, then run the same
+  # Dariten + Vercel mabl plans with app-url overridden to that preview.
+  # Official wait action polls GitHub Deployments (no Vercel token).
+  # https://github.com/vercel/wait-for-deployment-action
+  mabl-preview:
+    name: Mabl preview
+    needs: verify
+    if: github.event_name == 'pull_request' && secrets.MABL_API_KEY != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: read
+      statuses: read
+    env:
+      MABL_API_KEY: ${{ secrets.MABL_API_KEY }}
+    steps:
+      - name: Wait for Vercel preview
+        id: vercel
+        uses: vercel/wait-for-deployment-action@0e2b0c5c5cce31f1648108aeec56467187aca037 # main @ 2026-05-21
+        with:
+          environment: preview
+          require-deployment-id: false
+          timeout: 600
+          sha: ${{ github.event.pull_request.head.sha }}
+
+      - name: Trigger mabl against preview URL
+        uses: mablhq/github-run-tests-action@v1
+        env:
+          MABL_API_KEY: ${{ secrets.MABL_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          application-id: ${{ env.MABL_APPLICATION_ID }}
+          environment-id: ${{ env.MABL_ENVIRONMENT_ID }}
+          app-url: ${{ steps.vercel.outputs.deployment-url }}
