@@ -249,3 +249,5 @@ Suggested wiring:
 ## License
 
 Demo source for evaluation and Mabl walkthroughs. Not an official Quicken product.
+
+<!-- mabl-preview-ci-probe 2026-09-19T22:21:22Z -->
