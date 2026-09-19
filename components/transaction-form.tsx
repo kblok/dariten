@@ -21,6 +21,16 @@ export function TransactionActions({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const defaultFlow = transaction && transaction.amountCents >= 0 ? "in" : "out";
+  const groupedCategories = categories.reduce((groups, category) => {
+    const list = groups.get(category.group) ?? [];
+    list.push(category);
+    groups.set(category.group, list);
+    return groups;
+  }, new Map<string, CategoryOption[]>());
+  const defaultCategoryId =
+    transaction?.categoryId ??
+    categories.find((category) => !category.isIncome)?.id ??
+    categories[0]?.id;
 
   async function onSubmit(formData: FormData) {
     setPending(true);
@@ -104,13 +114,17 @@ export function TransactionActions({
               </select>
             </div>
           </div>
-          <div className="field">
+            <div className="field">
             <label htmlFor="categoryId">Category</label>
-            <select id="categoryId" name="categoryId" defaultValue={transaction?.categoryId ?? categories[0]?.id}>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.group} · {category.name}
-                </option>
+            <select id="categoryId" name="categoryId" defaultValue={defaultCategoryId}>
+              {[...groupedCategories.entries()].map(([group, items]) => (
+                <optgroup key={group} label={group}>
+                  {items.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>
