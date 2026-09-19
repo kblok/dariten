@@ -176,14 +176,14 @@ Coverage is unit / component level: money math, filters, validators, CSV export,
 4. `npm run typecheck`
 5. `npm test`
 
-After those tests, mabl runs (same Dariten application + Vercel environment IDs) when `MABL_API_KEY` is set:
+After those tests, mabl jobs start on the matching event (same Dariten application + Vercel environment IDs):
 
 | GitHub event | Job | URL |
 | --- | --- | --- |
 | Push to `main` | **Mabl production** | [https://dariten.vercel.app](https://dariten.vercel.app) |
 | Pull request | **Mabl preview** | That PR’s Vercel Preview URL (`app-url` override) |
 
-Both jobs call the [official mabl GitHub Action](https://github.com/mablhq/github-run-tests-action) (`mablhq/github-run-tests-action@v1`), which creates a [deployment event](https://api.help.mabl.com/reference/ondeploy) (`POST https://api.mabl.com/events/deployment`) and waits for the triggered plans. If `MABL_API_KEY` is empty, the mabl jobs are skipped.
+Both jobs call the [official mabl GitHub Action](https://github.com/mablhq/github-run-tests-action) (`mablhq/github-run-tests-action@v1`), which creates a [deployment event](https://api.help.mabl.com/reference/ondeploy) (`POST https://api.mabl.com/events/deployment`) and waits for the triggered plans. Job-level `if:` only filters the GitHub event (`push` to `main` vs `pull_request`). Do **not** put `secrets.MABL_API_KEY` in a job `if:` — that makes GitHub schedule **zero jobs** and fail instantly. After mapping the secret to `env.MABL_API_KEY`, later steps check `env.MABL_API_KEY != ''`. If the secret is unset, those steps are skipped and the job exits 0.
 
 The preview job waits for Vercel with the official [`vercel/wait-for-deployment-action`](https://github.com/vercel/wait-for-deployment-action) (pinned commit). It polls GitHub’s Deployments API — no Vercel token. The job needs:
 
@@ -196,7 +196,7 @@ permissions:
 
 Those scopes are declared on the preview job so the default `GITHUB_TOKEN` can read Vercel’s GitHub Deployment and commit status. The Vercel GitHub integration must stay installed on this repo so preview deployments appear as GitHub Deployments.
 
-The job is skipped until you add the API key:
+Mabl trigger steps no-op until you add the API key:
 
 1. In mabl, create a **CI/CD Integration** API key (workspace owner). Other key types will not authenticate the Action.
 2. In GitHub: **Settings → Secrets and variables → Actions → New repository secret**.
