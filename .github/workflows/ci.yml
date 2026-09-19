@@ -7,6 +7,8 @@ on:
 
 # Dariten Mabl IDs (not secrets). Override by changing these defaults.
 # Only MABL_API_KEY is a repository secret — do not commit an API key.
+# Never put secrets.* in a job-level `if:` — GitHub fails the whole workflow
+# with zero jobs. Check the key in a step after mapping it to env.
 env:
   MABL_WORKSPACE_ID: Tyl0bVDkrVJ7yJn9DF6Elg-w
   MABL_APPLICATION_ID: IzDXT4hknwruhKOu7DOyaA-a
@@ -48,16 +50,20 @@ jobs:
   # bound to the Dariten application + Vercel environment.
   # https://github.com/mablhq/github-run-tests-action
   # REST equivalent: POST https://api.mabl.com/events/deployment
-  # Skipped until repository secret MABL_API_KEY is set (CI/CD Integration key).
   mabl-cloud-run:
     name: Mabl production
     needs: verify
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.MABL_API_KEY != ''
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
       MABL_API_KEY: ${{ secrets.MABL_API_KEY }}
     steps:
+      - name: Skip mabl when API key is unset
+        if: env.MABL_API_KEY == ''
+        run: echo "MABL_API_KEY is not set; skipping production mabl. Add a CI/CD Integration key under Settings → Secrets."
+
       - name: Trigger mabl deployment event
+        if: env.MABL_API_KEY != ''
         id: mabl-test-deployment
         uses: mablhq/github-run-tests-action@v1
         env:
@@ -75,7 +81,7 @@ jobs:
   mabl-preview:
     name: Mabl preview
     needs: verify
-    if: github.event_name == 'pull_request' && secrets.MABL_API_KEY != ''
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -84,7 +90,12 @@ jobs:
     env:
       MABL_API_KEY: ${{ secrets.MABL_API_KEY }}
     steps:
+      - name: Skip mabl when API key is unset
+        if: env.MABL_API_KEY == ''
+        run: echo "MABL_API_KEY is not set; skipping preview mabl. Add a CI/CD Integration key under Settings → Secrets."
+
       - name: Wait for Vercel preview
+        if: env.MABL_API_KEY != ''
         id: vercel
         uses: vercel/wait-for-deployment-action@0e2b0c5c5cce31f1648108aeec56467187aca037 # main @ 2026-05-21
         with:
@@ -94,6 +105,7 @@ jobs:
           sha: ${{ github.event.pull_request.head.sha }}
 
       - name: Trigger mabl against preview URL
+        if: env.MABL_API_KEY != ''
         uses: mablhq/github-run-tests-action@v1
         env:
           MABL_API_KEY: ${{ secrets.MABL_API_KEY }}
