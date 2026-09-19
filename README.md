@@ -27,7 +27,7 @@ Out of scope: bank sync, investments, multi-user auth, native mobile apps.
 | Local DB | Docker Compose Postgres 16, or any local Postgres |
 | Tests | Vitest + Testing Library |
 | Deploy | Vercel |
-| CI | GitHub Actions (`lint` → `typecheck` → unit tests → mabl deployment event on `main`) |
+| CI | GitHub Actions (`lint` → `typecheck` → unit tests → mabl on production / PR preview) |
 
 Amounts are stored as integer cents.
 
@@ -152,7 +152,7 @@ DATABASE_URL="postgresql://USER:PASSWORD@ep-xxx.REGION.aws.neon.tech/neondb?sslm
 5. Deploy. Production is [https://dariten.vercel.app](https://dariten.vercel.app).
 6. The mabl **Vercel** environment should already point at that hostname. If you change the Vercel project name, update the mabl environment URL to match.
 
-Vercel rebuilds on every push to the connected Git branch. Preview deployments get their own URLs; they will share the same Neon database unless you create a separate Neon branch and a different `DATABASE_URL` for Preview.
+Vercel rebuilds on every push to the connected Git branch. Preview deployments get their own URLs. This project already sets the same Neon `DATABASE_URL` on **Preview** as on Production, so previews use the shared demo database (anyone can edit the same household). A separate Neon branch is optional if you later want isolated preview data.
 
 ### Vercel build note
 
@@ -176,14 +176,32 @@ Coverage is unit / component level: money math, filters, validators, CSV export,
 4. `npm run typecheck`
 5. `npm test`
 
-A second job, **Mabl cloud run**, runs after those tests on **push to `main`**. It calls the [official mabl GitHub Action](https://github.com/mablhq/github-run-tests-action) (`mablhq/github-run-tests-action@v1`), which creates a [deployment event](https://api.help.mabl.com/reference/ondeploy) (`POST https://api.mabl.com/events/deployment`) for the Dariten application and Vercel environment, then waits for the triggered plans.
+After those tests, mabl runs (same Dariten application + Vercel environment IDs) when `MABL_API_KEY` is set:
+
+| GitHub event | Job | URL |
+| --- | --- | --- |
+| Push to `main` | **Mabl production** | [https://dariten.vercel.app](https://dariten.vercel.app) |
+| Pull request | **Mabl preview** | That PR’s Vercel Preview URL (`app-url` override) |
+
+Both jobs call the [official mabl GitHub Action](https://github.com/mablhq/github-run-tests-action) (`mablhq/github-run-tests-action@v1`), which creates a [deployment event](https://api.help.mabl.com/reference/ondeploy) (`POST https://api.mabl.com/events/deployment`) and waits for the triggered plans. If `MABL_API_KEY` is empty, the mabl jobs are skipped.
+
+The preview job waits for Vercel with the official [`vercel/wait-for-deployment-action`](https://github.com/vercel/wait-for-deployment-action) (pinned commit). It polls GitHub’s Deployments API — no Vercel token. The job needs:
+
+```yaml
+permissions:
+  contents: read
+  deployments: read
+  statuses: read
+```
+
+Those scopes are declared on the preview job so the default `GITHUB_TOKEN` can read Vercel’s GitHub Deployment and commit status. The Vercel GitHub integration must stay installed on this repo so preview deployments appear as GitHub Deployments.
 
 The job is skipped until you add the API key:
 
 1. In mabl, create a **CI/CD Integration** API key (workspace owner). Other key types will not authenticate the Action.
 2. In GitHub: **Settings → Secrets and variables → Actions → New repository secret**.
 3. Name it exactly `MABL_API_KEY` and paste the key. Do not commit it.
-4. The next push to `main` will trigger the deployment event against [https://dariten.vercel.app](https://dariten.vercel.app).
+4. Pushes to `main` run mabl against production. Pull requests run mabl against the Vercel Preview URL after that deploy is ready.
 
 `MABL_WORKSPACE_ID`, `MABL_APPLICATION_ID`, and `MABL_ENVIRONMENT_ID` are workflow `env` defaults (see table below). They are not secrets.
 
@@ -219,7 +237,7 @@ Suggested wiring:
 1. Confirm the Vercel environment in mabl uses `https://dariten.vercel.app`.
 2. Author a smoke plan on the **Dariten** application (Dashboard, Accounts, Transactions).
 3. Bind that plan to the Vercel environment / deployment binding above so the GitHub Action deployment event picks it up.
-4. Add `MABL_API_KEY` as a GitHub Actions secret. Pushes to `main` then trigger the run.
+4. Add `MABL_API_KEY` as a GitHub Actions secret. Pushes to `main` test production; pull requests test the Vercel Preview URL.
 5. Keep the API key only in GitHub (or Vercel) secrets.
 
 ## Product notes
