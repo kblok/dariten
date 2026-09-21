@@ -19,7 +19,7 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Net worth" hint="All account balances combined">
           <MoneyText cents={data.netWorthCents} />
         </StatCard>
@@ -32,6 +32,13 @@ export default async function DashboardPage() {
           <span className="text-coral">
             <MoneyText cents={data.spendingCents} />
           </span>
+        </StatCard>
+        <StatCard
+          label="Savings rate"
+          hint="(Income − spending) ÷ income this month. 0% when there is no income."
+          preserveCase
+        >
+          <span className="text-moss">{data.savingsRatePercent}%</span>
         </StatCard>
       </section>
 
@@ -120,10 +127,20 @@ export default async function DashboardPage() {
   );
 }
 
-function StatCard({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
+function StatCard({
+  label,
+  hint,
+  children,
+  preserveCase = false,
+}: {
+  label: string;
+  hint: string;
+  children: React.ReactNode;
+  preserveCase?: boolean;
+}) {
   return (
     <article className="rounded-3xl border border-line bg-panel p-6">
-      <p className="text-xs uppercase tracking-[0.18em] text-muted">{label}</p>
+      <p className={`text-xs tracking-[0.18em] text-muted ${preserveCase ? "font-semibold" : "uppercase"}`}>{label}</p>
       <p className="mt-3 font-serif text-4xl">{children}</p>
       <p className="mt-2 text-sm text-muted">{hint}</p>
     </article>
