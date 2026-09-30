@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { currentMonth, monthRange, toDateOnly } from "@/lib/dates";
-import { spendingByCategory } from "@/lib/finance";
+import { savingsRatePercent, spendingByCategory } from "@/lib/finance";
 import { accountBalanceCents, netWorthCents } from "@/lib/money";
 
 export type TransactionFilters = {
@@ -96,6 +96,7 @@ export async function getDashboardData(month = currentMonth()) {
     netWorthCents: netWorthCents(accounts.map((account) => account.balanceCents)),
     incomeCents,
     spendingCents,
+    savingsRatePercent: savingsRatePercent(incomeCents, spendingCents),
     spending: spendingByCategory(
       monthTransactions.map((transaction) => ({
         amountCents: transaction.amountCents,

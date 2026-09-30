@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { budgetProgress, matchesTransactionFilters, spendingByCategory, transactionsToCsv } from "@/lib/finance";
+import { budgetProgress, matchesTransactionFilters, savingsRatePercent, spendingByCategory, transactionsToCsv } from "@/lib/finance";
 
 describe("finance helpers", () => {
   it("rolls expense categories into a spending snapshot", () => {
@@ -19,6 +19,14 @@ describe("finance helpers", () => {
     expect(matchesTransactionFilters(row, { accountId: "chk", from: "2026-09-01" })).toBe(true);
     expect(matchesTransactionFilters(row, { categoryId: "gas" })).toBe(false);
     expect(matchesTransactionFilters(row, { to: "2026-09-01" })).toBe(false);
+  });
+
+  it("computes savings rate as leftover income over income", () => {
+    expect(savingsRatePercent(721000, 321310)).toBe(55);
+    expect(savingsRatePercent(10000, 10000)).toBe(0);
+    expect(savingsRatePercent(10000, 12000)).toBe(-20);
+    expect(savingsRatePercent(0, 5000)).toBe(0);
+    expect(savingsRatePercent(-100, 50)).toBe(0);
   });
 
   it("computes budget remaining and percent", () => {
