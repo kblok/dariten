@@ -31,6 +31,14 @@ export function spendingByCategory(
     .sort((a, b) => b.amountCents - a.amountCents);
 }
 
+/** Share of this month's income that was not spent: (income − spending) / income. */
+export function savingsRatePercent(incomeCents: number, spendingCents: number): number {
+  if (incomeCents <= 0) {
+    return 0;
+  }
+  return Math.round(((incomeCents - spendingCents) / incomeCents) * 100);
+}
+
 export function budgetProgress(budgetCents: number, actualCents: number): {
   remainingCents: number;
   percent: number;
