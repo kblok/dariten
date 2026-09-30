@@ -21,6 +21,20 @@ describe("finance helpers", () => {
     expect(matchesTransactionFilters(row, { to: "2026-09-01" })).toBe(false);
   });
 
+  it("filters transactions by a payee or memo substring", () => {
+    const row = {
+      accountId: "chk",
+      categoryId: "groc",
+      date: "2026-09-08",
+      payee: "Whole Foods",
+      memo: "Weekly shop",
+    };
+    expect(matchesTransactionFilters(row, { search: "food" })).toBe(true);
+    expect(matchesTransactionFilters(row, { search: "  WEEKLY " })).toBe(true);
+    expect(matchesTransactionFilters(row, { search: "shell" })).toBe(false);
+    expect(matchesTransactionFilters(row, { search: "   " })).toBe(true);
+  });
+
   it("computes budget remaining and percent", () => {
     expect(budgetProgress(40000, 24877)).toEqual({
       remainingCents: 15123,

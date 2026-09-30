@@ -46,8 +46,14 @@ export function budgetProgress(budgetCents: number, actualCents: number): {
 }
 
 export function matchesTransactionFilters(
-  transaction: { accountId: string; categoryId: string; date: string },
-  filters: { accountId?: string; categoryId?: string; from?: string; to?: string },
+  transaction: {
+    accountId: string;
+    categoryId: string;
+    date: string;
+    payee?: string;
+    memo?: string | null;
+  },
+  filters: { accountId?: string; categoryId?: string; from?: string; to?: string; search?: string },
 ): boolean {
   if (filters.accountId && transaction.accountId !== filters.accountId) {
     return false;
@@ -60,6 +66,13 @@ export function matchesTransactionFilters(
   }
   if (filters.to && transaction.date > filters.to) {
     return false;
+  }
+  const search = filters.search?.trim().toLowerCase();
+  if (search) {
+    const haystack = `${transaction.payee ?? ""}\n${transaction.memo ?? ""}`.toLowerCase();
+    if (!haystack.includes(search)) {
+      return false;
+    }
   }
   return true;
 }

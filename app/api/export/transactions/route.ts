@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const rows = await getTransactions({
+    search: searchParams.get("search") ?? undefined,
     accountId: searchParams.get("accountId") ?? undefined,
     categoryId: searchParams.get("categoryId") ?? undefined,
     from: searchParams.get("from") ?? undefined,

@@ -7,6 +7,7 @@ import { TransactionFilters } from "@/components/transaction-filters";
 export default async function TransactionsPage({ searchParams }: PageProps<"/transactions">) {
   const params = await searchParams;
   const filters = {
+    search: typeof params.search === "string" ? params.search : undefined,
     accountId: typeof params.accountId === "string" ? params.accountId : undefined,
     categoryId: typeof params.categoryId === "string" ? params.categoryId : undefined,
     from: typeof params.from === "string" ? params.from : undefined,

@@ -8,6 +8,7 @@ export type TransactionFilters = {
   categoryId?: string;
   from?: string;
   to?: string;
+  search?: string;
 };
 
 export async function getAccountsWithBalances() {
@@ -38,6 +39,7 @@ export async function getCategories() {
 }
 
 export async function getTransactions(filters: TransactionFilters = {}) {
+  const search = filters.search?.trim();
   const transactions = await prisma.transaction.findMany({
     where: {
       accountId: filters.accountId || undefined,
@@ -46,6 +48,14 @@ export async function getTransactions(filters: TransactionFilters = {}) {
         gte: filters.from ? new Date(`${filters.from}T00:00:00.000Z`) : undefined,
         lte: filters.to ? new Date(`${filters.to}T23:59:59.999Z`) : undefined,
       },
+      ...(search
+        ? {
+            OR: [
+              { payee: { contains: search, mode: "insensitive" } },
+              { memo: { contains: search, mode: "insensitive" } },
+            ],
+          }
+        : {}),
     },
     include: {
       account: true,
