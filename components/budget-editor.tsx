@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { saveBudgets } from "@/app/actions/budgets";
+import { saveBudgets } from "@/lib/db";
 import { centsToDollarInput } from "@/lib/money";
 import { budgetProgress } from "@/lib/finance";
 import { MoneyText } from "@/components/money-text";
@@ -16,7 +15,6 @@ type BudgetRow = {
 };
 
 export function BudgetEditor({ month, rows }: { month: string; rows: BudgetRow[] }) {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -36,7 +34,6 @@ export function BudgetEditor({ month, rows }: { month: string; rows: BudgetRow[]
       return;
     }
     setMessage("Budget saved.");
-    router.refresh();
   }
 
   return (

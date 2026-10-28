@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createTransaction, deleteTransaction, updateTransaction } from "@/app/actions/transactions";
+import { createTransaction, deleteTransaction, updateTransaction } from "@/lib/db";
 import { centsToDollarInput } from "@/lib/money";
 import { Modal } from "@/components/modal";
 import type { AccountOption, CategoryOption, TransactionDraft } from "@/lib/types";
@@ -16,7 +15,6 @@ export function TransactionActions({
   categories: CategoryOption[];
   transaction?: TransactionDraft;
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -53,7 +51,6 @@ export function TransactionActions({
       return;
     }
     setOpen(false);
-    router.refresh();
   }
 
   async function onDelete() {
@@ -66,7 +63,6 @@ export function TransactionActions({
       return;
     }
     setOpen(false);
-    router.refresh();
   }
 
   return (

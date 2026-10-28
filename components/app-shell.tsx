@@ -22,7 +22,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
           <NavLinks links={[...links]} />
           <p className="mt-auto px-2 text-xs leading-5 text-[#b7c4bb]">
-            Shared demo dataset. Balances include opening amounts plus every transaction.
+            Saved in this browser. Balances include opening amounts plus every transaction. Use Reset sample data to restore
+            the starter household.
           </p>
         </aside>
         <div className="flex min-w-0 flex-1 flex-col">

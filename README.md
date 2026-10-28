@@ -2,19 +2,30 @@
 
 A polished, **demo-only** personal finance web app in the spirit of a simplified Quicken: accounts, a transaction register, categories, a dashboard, and a monthly budget vs actual view. The in-app product name is **Quicken Demo**.
 
-This is **not** production software. There is **no login**. Every visitor of a given deploy shares one household dataset. Do not enter real bank credentials or real personal transactions.
+This is **not** production software. There is **no login** and **no remote database**. Each browser keeps its own copy of the sample household in IndexedDB. Do not enter real bank credentials or real personal transactions.
 
 Live URL: [https://dariten.vercel.app](https://dariten.vercel.app)
 
 ## What is in the demo
 
-- **Dashboard** — net worth, this month’s income and spending, account balances, a spending snapshot, recent activity
+- **Dashboard** — net worth, this month’s income and spending, savings rate, account balances, a spending snapshot, recent activity
 - **Accounts** — checking, savings, credit card, and cash; create/edit; live balances
 - **Transactions** — list, filters (account, category, date range), add/edit/delete, CSV export
 - **Categories** — seeded chart of accounts plus basic management
 - **Budgets** — monthly budget vs actual by expense category
 
-Out of scope: bank sync, investments, multi-user auth, native mobile apps.
+Out of scope: bank sync, investments, multi-user auth, native mobile apps, a shared server-side household.
+
+## Where the data lives
+
+The ledger is stored in the browser with [Dexie](https://dexie.org/) (IndexedDB), database name **`dariten`**. Object stores mirror the old account, category, transaction, and budget models. Amounts are integer cents.
+
+- The first visit in a browser writes the sample household when the store is empty (about 4 accounts, 17 categories, 59 transactions, and September 2026 budgets).
+- Later edits stay in that browser and survive reloads. Another visitor, another browser, or a private window gets its own copy.
+- **Reset sample data** in the green banner replaces this browser’s ledger with the original sample. It does not affect anyone else.
+- You can also delete the `dariten` database under DevTools → Application → IndexedDB. The next load seeds it again.
+
+The seed records live in `lib/seed-data.ts` (ported from the old Prisma seed). Pages read a client snapshot and write through `lib/db.ts`. The happy path does not call a server database.
 
 ## Stack
 
@@ -22,22 +33,17 @@ Out of scope: bank sync, investments, multi-user auth, native mobile apps.
 | --- | --- |
 | App | Next.js 16 App Router, React 19, TypeScript |
 | UI | Tailwind CSS 4 |
-| Database | PostgreSQL via Prisma 6 |
-| Hosted DB | [Neon](https://neon.tech) free tier (recommended for Vercel) |
-| Local DB | Docker Compose Postgres 16, or any local Postgres |
-| Tests | Vitest + Testing Library |
-| Deploy | Vercel |
+| Data | IndexedDB via Dexie 4, seeded per browser |
+| Tests | Vitest + Testing Library (finance helpers, seed views, IndexedDB mutations) |
+| Deploy | Vercel (no database env vars) |
 | CI | GitHub Actions (`lint` → `typecheck` → unit tests → mabl on production / PR preview) |
-
-Amounts are stored as integer cents.
 
 ## Environment variables
 
-Copy `.env.example` to `.env` and fill in values.
+None are required to run or deploy the demo. Copy `.env.example` to `.env` only if you want the optional Mabl identifiers locally.
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `DATABASE_URL` | Yes | Postgres connection string used by Prisma and the app |
 | `MABL_API_KEY` | CI only | Mabl **CI/CD Integration** API key — store as a GitHub Actions secret, never commit it |
 | `VERCEL_AUTOMATION_BYPASS_SECRET` | CI only | Vercel **Protection Bypass for Automation** — store as a GitHub Actions secret; must match the value in the Vercel project |
 | `MABL_WORKSPACE_ID` | Optional | Defaults in CI to the Dario Kondratiuk workspace (see below) |
@@ -46,118 +52,43 @@ Copy `.env.example` to `.env` and fill in values.
 
 `MABL_API_KEY` and `VERCEL_AUTOMATION_BYPASS_SECRET` are secrets. The three Mabl IDs are public identifiers and are hardcoded as workflow defaults.
 
+`DATABASE_URL` is no longer read. Remove it from the Vercel project (Production, Preview, and Development) when you next tidy env vars. The old Neon project can be paused or deleted; this app will not connect to it.
+
 ## Local setup
 
-You need Node.js 22+ and a Postgres database.
-
-### 1. Clone and install
+You need Node.js 22+. Postgres, Docker, and Neon are not used.
 
 ```bash
 git clone https://github.com/kblok/dariten.git
 cd dariten
-cp .env.example .env
 npm install
-```
-
-`npm install` runs `prisma generate`.
-
-### 2. Start Postgres
-
-**Option A — Docker Compose (recommended)**
-
-```bash
-docker compose up -d
-```
-
-This matches the default `.env.example` URL:
-
-```text
-DATABASE_URL=postgresql://quicken:quicken@localhost:5432/quicken_demo
-```
-
-**Option B — local Postgres**
-
-Create a database and user, then point `DATABASE_URL` at them.
-
-**Option C — Neon even for local work**
-
-Create a free project at [https://console.neon.tech](https://console.neon.tech), copy the connection string (SSL required), and put it in `.env` as `DATABASE_URL`.
-
-### 3. Migrate and seed
-
-```bash
-npx prisma migrate deploy
-npm run db:seed
-```
-
-The seed replaces accounts, categories, transactions, and September 2026 sample budgets so the UI looks alive (~4 accounts, ~50 transactions).
-
-To start over:
-
-```bash
-npm run db:reset
-```
-
-### 4. Run the app
-
-```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). The dashboard heading appears without a remote database. The sample household loads from IndexedDB on first visit.
 
 ## Scripts
 
 | Script | What it does |
 | --- | --- |
 | `npm run dev` | Next.js dev server |
-| `npm run build` | `prisma generate` + production build |
+| `npm run build` | Production build (no database step) |
 | `npm start` | Serve the production build |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm test` | Vitest once (used by CI) |
 | `npm run test:watch` | Vitest watch mode |
-| `npm run db:seed` | Re-seed the shared demo dataset |
-| `npm run db:migrate` | Create / apply a migration in development |
-| `npm run db:deploy` | Apply committed migrations (`prisma migrate deploy`) |
-| `npm run db:reset` | Drop, migrate, and seed |
 
-## Neon + Vercel + GitHub
+## Vercel
 
-### Create the Neon database
+1. Sign in at [https://vercel.com](https://vercel.com) and import **`kblok/dariten`** if it is not already connected.
+2. Framework preset should be **Next.js**. Build command is `npm run build`. No output directory override.
+3. Do **not** set `DATABASE_URL`. The site renders without Neon.
+4. Production is [https://dariten.vercel.app](https://dariten.vercel.app).
 
-1. Sign in at [https://console.neon.tech](https://console.neon.tech) and create a project (for example `dariten`).
-2. Open **Dashboard → Connection details**.
-3. Copy the **pooled** connection string for the Next.js app. It looks like:
+Vercel rebuilds on every push to the connected Git branch. Preview deployments are the same app; each reviewer’s browser still has its own ledger. `next build` does not open IndexedDB and does not need any database URL at build or runtime.
 
-   ```text
-   postgresql://USER:PASSWORD@ep-xxx-pooler.REGION.aws.neon.tech/neondb?sslmode=require
-   ```
-
-4. For the first migration you can use that same URL, or the **direct / unpooled** URL if Neon asks you to. Prisma in this repo uses a single `DATABASE_URL` (no `directUrl`) so the simplest path is: run migrate against the unpooled URL once, then set the pooled URL on Vercel.
-
-Apply schema and seed from your laptop (or any machine with the URL):
-
-```bash
-DATABASE_URL="postgresql://USER:PASSWORD@ep-xxx.REGION.aws.neon.tech/neondb?sslmode=require" npx prisma migrate deploy
-DATABASE_URL="postgresql://USER:PASSWORD@ep-xxx.REGION.aws.neon.tech/neondb?sslmode=require" npm run db:seed
-```
-
-### Connect this GitHub repo to Vercel
-
-1. Sign in at [https://vercel.com](https://vercel.com) and click **Add New… → Project**.
-2. Import **`kblok/dariten`** from GitHub. If the repo is not listed, install the Vercel GitHub app and grant access to it.
-3. Framework preset should be **Next.js**. Build command can stay `npm run build` (or Vercel’s default). Output directory is not needed.
-4. Under **Environment Variables**, add:
-   - `DATABASE_URL` = Neon pooled connection string (Production, Preview, and Development if you use `vercel dev`)
-5. Deploy. Production is [https://dariten.vercel.app](https://dariten.vercel.app).
-6. The mabl **Vercel** environment should already point at that hostname. If you change the Vercel project name, update the mabl environment URL to match.
-
-Vercel rebuilds on every push to the connected Git branch. Preview deployments get their own URLs. This project already sets the same Neon `DATABASE_URL` on **Preview** as on Production, so previews use the shared demo database (anyone can edit the same household). A separate Neon branch is optional if you later want isolated preview data.
-
-### Vercel build note
-
-`next build` does not query the database (pages are dynamically rendered). You still need `DATABASE_URL` at runtime on Vercel. Run `prisma migrate deploy` yourself whenever you add a new migration — it is not part of `npm run build`, so CI can stay green without a live database.
+If this project still has a Neon `DATABASE_URL` from the previous Postgres demo, delete that variable in the Vercel dashboard so a future build does not look like it depends on it. Nothing in the app reads it.
 
 ## Tests
 
@@ -165,17 +96,16 @@ Vercel rebuilds on every push to the connected Git branch. Preview deployments g
 npm test
 ```
 
-Coverage is unit / component level: money math, filters, validators, CSV export, and the demo banner. There is no Playwright suite in this repo. Cloud browser coverage is intended to come from mabl after `MABL_API_KEY` is set.
+Coverage is unit / component level: money math, filters, validators, CSV export, seed views, IndexedDB create/reset, and the demo banner. There is no Playwright suite in this repo. Cloud browser coverage is intended to come from mabl after `MABL_API_KEY` is set.
 
 ## GitHub Actions
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) on push to `main` and on pull requests:
 
 1. `npm ci`
-2. `npx prisma generate`
-3. `npm run lint`
-4. `npm run typecheck`
-5. `npm test`
+2. `npm run lint`
+3. `npm run typecheck`
+4. `npm test`
 
 After those tests, mabl jobs start on the matching event (same Dariten application + Vercel environment IDs):
 
@@ -243,11 +173,14 @@ Suggested wiring:
 4. Add `MABL_API_KEY` as a GitHub Actions secret. Pushes to `main` test production; pull requests test the Vercel Preview URL.
 5. Keep the API key only in GitHub (or Vercel) secrets.
 
+Mabl runs in a real browser, so it will seed IndexedDB in that browser profile. A plan that assumes one shared server household will see only the data in the mabl browser. Use **Reset sample data** if a scenario needs the starter ledger again.
+
 ## Product notes
 
 - Credit-card opening balances can be negative (amount owed). Net worth is the sum of every account balance.
 - Transfers in the seed appear as two register lines (out of checking, into savings or cash) so the demo stays simple — there is no linked-transfer engine.
-- Re-running `npm run db:seed` wipes and recreates the shared demo data.
+- “This month” on the dashboard follows the calendar month in UTC. The sample activity is July–September 2026, so later months show balances and recent transactions with little or no new cash flow until you add some.
+- Resetting the banner (or deleting the `dariten` IndexedDB database) restores the starter household in this browser only.
 
 ## License
 

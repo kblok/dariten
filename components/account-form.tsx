@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createAccount, deleteAccount, updateAccount } from "@/app/actions/accounts";
+import { createAccount, deleteAccount, updateAccount } from "@/lib/db";
 import { ACCOUNT_TYPE_LABELS, ACCOUNT_TYPES } from "@/lib/finance";
 import { centsToDollarInput } from "@/lib/money";
 import { Modal } from "@/components/modal";
@@ -17,7 +16,6 @@ type AccountRecord = {
 };
 
 export function AccountActions({ account }: { account?: AccountRecord }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -38,7 +36,6 @@ export function AccountActions({ account }: { account?: AccountRecord }) {
       return;
     }
     setOpen(false);
-    router.refresh();
   }
 
   async function onDelete() {
@@ -51,7 +48,6 @@ export function AccountActions({ account }: { account?: AccountRecord }) {
       return;
     }
     setOpen(false);
-    router.refresh();
   }
 
   return (

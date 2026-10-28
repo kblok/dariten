@@ -26,8 +26,10 @@ export function TransactionFilters({
     router.push(query ? `/transactions?${query}` : "/transactions");
   }
 
+  const formKey = [current.accountId, current.categoryId, current.from, current.to].join("|");
+
   return (
-    <form action={onSubmit} className="grid gap-3 rounded-2xl border border-line bg-panel p-4 md:grid-cols-5">
+    <form key={formKey} action={onSubmit} className="grid gap-3 rounded-2xl border border-line bg-panel p-4 md:grid-cols-5">
       <div className="field">
         <label htmlFor="accountId">Account</label>
         <select id="accountId" name="accountId" defaultValue={current.accountId ?? ""}>

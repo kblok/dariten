@@ -1,8 +1,13 @@
-import { PrismaClient, type AccountType } from "@prisma/client";
+import type { AccountType } from "@/lib/finance";
+import type { AccountRecord, BudgetRecord, CategoryRecord, LedgerSnapshot, TransactionRecord } from "@/lib/models";
 
-const prisma = new PrismaClient();
+const SEED_EPOCH = Date.parse("2026-07-01T00:00:00.000Z");
 
-const categories: { name: string; group: string; isIncome: boolean; sortOrder: number }[] = [
+type SeedCategory = { name: string; group: string; isIncome: boolean; sortOrder: number };
+type SeedAccount = { key: string; name: string; type: AccountType; institution: string | null; openingBalanceCents: number };
+type SeedTxn = { date: string; account: string; category: string; payee: string; amountCents: number; memo?: string };
+
+const categories: SeedCategory[] = [
   { name: "Paycheck", group: "Income", isIncome: true, sortOrder: 10 },
   { name: "Interest", group: "Income", isIncome: true, sortOrder: 20 },
   { name: "Other Income", group: "Income", isIncome: true, sortOrder: 30 },
@@ -22,21 +27,12 @@ const categories: { name: string; group: string; isIncome: boolean; sortOrder: n
   { name: "Uncategorized", group: "Other", isIncome: false, sortOrder: 170 },
 ];
 
-const accounts: { key: string; name: string; type: AccountType; institution: string | null; openingBalanceCents: number }[] = [
+const accounts: SeedAccount[] = [
   { key: "checking", name: "Everyday Checking", type: "CHECKING", institution: "Harbor Credit Union", openingBalanceCents: 325000 },
   { key: "savings", name: "Rainy Day Savings", type: "SAVINGS", institution: "Harbor Credit Union", openingBalanceCents: 1180000 },
   { key: "card", name: "Travel Rewards Visa", type: "CREDIT_CARD", institution: "Northline Card", openingBalanceCents: -112000 },
   { key: "cash", name: "Wallet Cash", type: "CASH", institution: null, openingBalanceCents: 24000 },
 ];
-
-type SeedTxn = {
-  date: string;
-  account: string;
-  category: string;
-  payee: string;
-  amountCents: number;
-  memo?: string;
-};
 
 const transactions: SeedTxn[] = [
   { date: "2026-07-01", account: "checking", category: "Paycheck", payee: "Northline Studio", amountCents: 320000, memo: "Biweekly pay" },
@@ -116,71 +112,78 @@ const septemberBudgets: { category: string; amountCents: number }[] = [
   { category: "Fitness", amountCents: 5000 },
 ];
 
-async function main() {
-  await prisma.budget.deleteMany();
-  await prisma.transaction.deleteMany();
-  await prisma.category.deleteMany();
-  await prisma.account.deleteMany();
-
-  const createdAccounts = new Map<string, string>();
-  for (const account of accounts) {
-    const created = await prisma.account.create({
-      data: {
-        name: account.name,
-        type: account.type,
-        institution: account.institution,
-        openingBalanceCents: account.openingBalanceCents,
-      },
-    });
-    createdAccounts.set(account.key, created.id);
-  }
-
-  const createdCategories = new Map<string, string>();
-  for (const category of categories) {
-    const created = await prisma.category.create({ data: category });
-    createdCategories.set(category.name, created.id);
-  }
-
-  for (const transaction of transactions) {
-    const accountId = createdAccounts.get(transaction.account);
-    const categoryId = createdCategories.get(transaction.category);
-    if (!accountId || !categoryId) {
-      throw new Error(`Missing account or category for ${transaction.payee}`);
-    }
-    await prisma.transaction.create({
-      data: {
-        date: new Date(`${transaction.date}T00:00:00.000Z`),
-        amountCents: transaction.amountCents,
-        payee: transaction.payee,
-        memo: transaction.memo,
-        accountId,
-        categoryId,
-      },
-    });
-  }
-
-  for (const budget of septemberBudgets) {
-    const categoryId = createdCategories.get(budget.category);
-    if (!categoryId) {
-      throw new Error(`Missing budget category ${budget.category}`);
-    }
-    await prisma.budget.create({
-      data: {
-        month: "2026-09",
-        categoryId,
-        amountCents: budget.amountCents,
-      },
-    });
-  }
-
-  console.log(`Seeded ${accounts.length} accounts, ${categories.length} categories, ${transactions.length} transactions.`);
+function seedTimestamp(index: number): string {
+  return new Date(SEED_EPOCH + index * 1000).toISOString();
 }
 
-main()
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
+function categoryId(name: string): string {
+  return `seed-cat-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`;
+}
+
+/** Starter household copied into IndexedDB when a browser's ledger is empty. */
+export function buildSeedSnapshot(): LedgerSnapshot {
+  const createdAt = seedTimestamp(0);
+  const accountRecords: AccountRecord[] = accounts.map((account) => ({
+    id: `seed-acct-${account.key}`,
+    name: account.name,
+    type: account.type,
+    institution: account.institution,
+    openingBalanceCents: account.openingBalanceCents,
+    createdAt,
+    updatedAt: createdAt,
+  }));
+  const accountIds = new Map(accounts.map((account, index) => [account.key, accountRecords[index].id]));
+
+  const categoryRecords: CategoryRecord[] = categories.map((category) => ({
+    id: categoryId(category.name),
+    name: category.name,
+    group: category.group,
+    isIncome: category.isIncome,
+    sortOrder: category.sortOrder,
+    createdAt,
+  }));
+  const categoryIds = new Map(categoryRecords.map((category) => [category.name, category.id]));
+
+  const transactionRecords: TransactionRecord[] = transactions.map((transaction, index) => {
+    const accountId = accountIds.get(transaction.account);
+    const linkedCategoryId = categoryIds.get(transaction.category);
+    if (!accountId || !linkedCategoryId) {
+      throw new Error(`Missing account or category for ${transaction.payee}`);
+    }
+    const timestamp = seedTimestamp(index + 1);
+    return {
+      id: `seed-txn-${String(index + 1).padStart(3, "0")}`,
+      date: transaction.date,
+      amountCents: transaction.amountCents,
+      payee: transaction.payee,
+      memo: transaction.memo ?? null,
+      accountId,
+      categoryId: linkedCategoryId,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
   });
+
+  const budgetRecords: BudgetRecord[] = septemberBudgets.map((budget, index) => {
+    const linkedCategoryId = categoryIds.get(budget.category);
+    if (!linkedCategoryId) {
+      throw new Error(`Missing budget category ${budget.category}`);
+    }
+    const timestamp = seedTimestamp(transactions.length + index + 1);
+    return {
+      id: `seed-budget-${categoryId(budget.category).replace("seed-cat-", "")}`,
+      categoryId: linkedCategoryId,
+      month: "2026-09",
+      amountCents: budget.amountCents,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+  });
+
+  return {
+    accounts: accountRecords,
+    categories: categoryRecords,
+    transactions: transactionRecords,
+    budgets: budgetRecords,
+  };
+}

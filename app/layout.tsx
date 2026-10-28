@@ -19,7 +19,7 @@ const newsreader = Newsreader({
 
 export const metadata: Metadata = {
   title: "Quicken Demo",
-  description: "A simplified Quicken-style personal finance web demo. Shared sample data, no login.",
+  description: "A simplified Quicken-style personal finance web demo. Sample data stays in this browser. No login.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
