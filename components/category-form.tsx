@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createCategory, deleteCategory, updateCategory } from "@/app/actions/categories";
+import { createCategory, deleteCategory, updateCategory } from "@/lib/db";
 import { Modal } from "@/components/modal";
 
 type CategoryRecord = {
@@ -16,7 +15,6 @@ type CategoryRecord = {
 const groups = ["Income", "Housing", "Food", "Transport", "Lifestyle", "Health", "Transfers", "Other"];
 
 export function CategoryActions({ category }: { category?: CategoryRecord }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -36,7 +34,6 @@ export function CategoryActions({ category }: { category?: CategoryRecord }) {
       return;
     }
     setOpen(false);
-    router.refresh();
   }
 
   async function onDelete() {
@@ -49,7 +46,6 @@ export function CategoryActions({ category }: { category?: CategoryRecord }) {
       return;
     }
     setOpen(false);
-    router.refresh();
   }
 
   return (
